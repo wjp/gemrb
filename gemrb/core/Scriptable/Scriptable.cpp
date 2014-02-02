@@ -1791,7 +1791,7 @@ void Highlightable::DrawOutline() const
 	if (!outline) {
 		return;
 	}
-	core->GetVideoDriver()->DrawPolyline( outline, outlineColor, true );
+	core->GetVideoDriver()->DrawPolyline( outline, outlineColor, true, FILL_HALFTRANS );
 }
 
 void Highlightable::SetCursor(unsigned char CursorIndex)

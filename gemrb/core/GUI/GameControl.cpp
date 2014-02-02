@@ -581,7 +581,7 @@ void GameControl::DrawInternal(Region& screen)
 				c.b = 0x7F;
 			}
 
-			video->DrawPolyline( poly, c, true );
+			video->DrawPolyline( poly, c, true, FILL_HALFTRANS );
 		}
 	}
 

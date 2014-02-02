@@ -114,7 +114,7 @@ public:
 	void DrawEllipse(short cx, short cy, unsigned short xr, unsigned short yr,
 		const Color& color, bool clipped = true);
 	/** This function Draws a Polygon on the Screen */
-	void DrawPolyline(Gem_Polygon* poly, const Color& color, bool fill = false);
+	void DrawPolyline(Gem_Polygon* poly, const Color& color, bool outline = true, FillType fill = FILL_NO);
 	void DrawHLine(short x1, short y, short x2, const Color& color, bool clipped = false);
 	void DrawVLine(short x, short y1, short y2, const Color& color, bool clipped = false);
 	void DrawLine(short x1, short y1, short x2, short y2, const Color& color, bool clipped = false);

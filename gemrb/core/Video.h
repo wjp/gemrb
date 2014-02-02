@@ -70,6 +70,13 @@ enum CursorType {
 	VID_CUR_DRAG = 2
 };
 
+enum FillType {
+	FILL_NO = 0, // Outline only
+	FILL_SOLID = 1, // Solid fill
+	FILL_HALFTRANS = 2, // 50% alpha fill
+	FILL_MONOTINT = 3 // tint brightness of background
+};
+
 //disable mouse flags
 const int MOUSE_GRAYED		= 1;
 const int MOUSE_DISABLED	= 2;
@@ -167,7 +174,7 @@ public:
 		unsigned short yr, const Color& color, bool clipped = true) = 0;
 	/** Draws a polygon on the screen */
 	virtual void DrawPolyline(Gem_Polygon* poly, const Color& color,
-		bool fill = false) = 0;
+		bool outline = true, FillType fill = FILL_NO) = 0;
 	/** Draws a line segment */
 	virtual void DrawLine(short x1, short y1, short x2, short y2,
 		const Color& color, bool clipped = false) = 0;

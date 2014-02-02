@@ -1272,7 +1272,21 @@ void SDLVideoDriver::DrawEllipse(short cx, short cy, unsigned short xr,
 	}
 }
 
-void SDLVideoDriver::DrawPolyline(Gem_Polygon* poly, const Color& color, bool fill)
+template<typename PTYPE>
+static void MonoTintLine(SDL_PixelFormat* format, PTYPE* start, PTYPE* end, Color col)
+{
+	for (PTYPE* pix = start; pix < end; ++pix) {
+		Uint32 p = *pix;
+		Uint32 val = ((p >> format->Rshift) << format->Rloss) & 0xFF;
+		val += ((p >> format->Gshift) << format->Gloss) & 0xFF;
+		val += ((p >> format->Bshift) << format->Bloss) & 0xFF;
+		*pix = ((val * col.r) >> (format->Rloss+10)) << format->Rshift |
+		       ((val * col.g) >> (format->Gloss+10)) << format->Gshift |
+		       ((val * col.b) >> (format->Bloss+10)) << format->Bshift;
+	}
+}
+
+void SDLVideoDriver::DrawPolyline(Gem_Polygon* poly, const Color& color, bool outline, FillType fill)
 {
 	if (!poly->count) {
 		return;
@@ -1283,7 +1297,9 @@ void SDLVideoDriver::DrawPolyline(Gem_Polygon* poly, const Color& color, bool fi
 	if (poly->BBox.x + poly->BBox.w < Viewport.x) return;
 	if (poly->BBox.y + poly->BBox.h < Viewport.y) return;
 
-	if (fill) {
+	if (fill != FILL_NO) {
+		Uint32 col32 = SDL_MapRGBA(backBuf->format, color.r, color.g, color.b, 0);
+		Uint16 col16 = (Uint16)col32;
 		Uint32 alphacol32 = SDL_MapRGBA(backBuf->format, color.r/2, color.g/2, color.b/2, 0);
 		Uint16 alphacol16 = (Uint16)alphacol32;
 
@@ -1331,19 +1347,41 @@ void SDLVideoDriver::DrawPolyline(Gem_Polygon* poly, const Color& color, bool fi
 				if (rt > Viewport.w) rt = Viewport.w;
 				if (lt >= rt) { line += backBuf->pitch; continue; } // clipped
 
-
-				// Draw a 50% alpha line from (y,lt) to (y,rt)
-
+				// Draw a line from (y,lt) to (y,rt)
 				if (backBuf->format->BytesPerPixel == 2) {
 					Uint16* pix = (Uint16*)line + lt + xCorr;
 					Uint16* end = pix + (rt - lt);
-					for (; pix < end; pix++)
-						*pix = ((*pix >> 1)&mask16) + alphacol16;
+					if (fill == FILL_SOLID) {
+						// solid
+						for (; pix < end; pix++)
+							*pix = col16;
+					} else if (fill == FILL_HALFTRANS) {
+						// 50% alpha
+						for (; pix < end; pix++)
+							*pix = ((*pix >> 1)&mask16) + alphacol16;
+					} else if (fill == FILL_MONOTINT) {
+						// tint the background brightness
+						MonoTintLine<Uint16>(backBuf->format, pix, end, color);
+					} else {
+						assert(false);
+					}
 				} else if (backBuf->format->BytesPerPixel == 4) {
 					Uint32* pix = (Uint32*)line + lt + xCorr;
 					Uint32* end = pix + (rt - lt);
-					for (; pix < end; pix++)
-						*pix = ((*pix >> 1)&mask32) + alphacol32;
+					if (fill == FILL_SOLID) {
+						// solid
+						for (; pix < end; pix++)
+							*pix = col32;
+					} else if (fill == FILL_HALFTRANS) {
+						// 50% alpha
+						for (; pix < end; pix++)
+							*pix = ((*pix >> 1)&mask32) + alphacol32;
+					} else if (fill == FILL_MONOTINT) {
+						// tint the background brightness
+						MonoTintLine<Uint32>(backBuf->format, pix, end, color);
+					} else {
+						assert(false);
+					}
 				} else {
 					assert(false);
 				}
@@ -1353,15 +1391,17 @@ void SDLVideoDriver::DrawPolyline(Gem_Polygon* poly, const Color& color, bool fi
 		SDL_UnlockSurface(backBuf);
 	}
 
-	short lastX = poly->points[0]. x, lastY = poly->points[0].y;
-	unsigned int i;
+	if (outline) {
+		short lastX = poly->points[0]. x, lastY = poly->points[0].y;
+		unsigned int i;
 
-	for (i = 1; i < poly->count; i++) {
-		DrawLine( lastX, lastY, poly->points[i].x, poly->points[i].y, color, true );
-		lastX = poly->points[i].x;
-		lastY = poly->points[i].y;
+		for (i = 1; i < poly->count; i++) {
+			DrawLine( lastX, lastY, poly->points[i].x, poly->points[i].y, color, true );
+			lastX = poly->points[i].x;
+			lastY = poly->points[i].y;
+		}
+		DrawLine( lastX, lastY, poly->points[0].x, poly->points[0].y, color, true );
 	}
-	DrawLine( lastX, lastY, poly->points[0].x, poly->points[0].y, color, true );
 
 	return;
 }
